@@ -49,9 +49,70 @@ Design a **dynamic and conditional data pipeline** in **Azure Data Factory (ADF)
 
 ---
 
-## 🗂️ Data Storage
-
-All output data is stored in structured folders in **ADLS Gen2**, partitioned for downstream processing and analytics.
+## 🏗️ Step-by-Step Pipeline Creation
 
 ---
+
+### 🔷 Step 1: Create the Parent Pipeline (`CopyCustomerData_Pipeline`)
+
+#### 🔹 1. Lookup Activity
+- **Purpose**: Retrieve customer count
+- **Query**:
+  ```sql
+  SELECT COUNT(*) as totalCount FROM Customer
+  ```
+
+#### 🔹 2. Set Variable
+- **Purpose**: Store the count from lookup
+- **Value Expression**:
+  ```json
+  @activity('GetCustomerCount').output.firstRow.totalCount
+  ```
+
+#### 🔹 3. If Condition – `CustomerCount > 500`
+- **Expression**:
+  ```json
+  @greater(variables('CustomerCount'), 500)
+  ```
+
+✅ Inside the True block:
+- 🗃️ **Copy Data** → Copy **Customer** table to ADLS  
+- 🚀 **Execute Pipeline** → Call `ChildPipeline_ProductCopy`  
+  - Pass parameter:
+    ```json
+    @variables('CustomerCount')
+    ```
+
+---
+
+### 🔷 Step 2: Create the Child Pipeline (`ChildPipeline_ProductCopy`)
+
+#### 🔹 1. Add Pipeline Parameter
+- **Name**: `customerCount`
+- **Type**: `Int`
+
+#### 🔹 2. If Condition – `CustomerCount > 600`
+- **Expression**:
+  ```json
+  @greater(int(pipeline().parameters.customerCount), 600)
+  ```
+
+✅ Inside the True block:
+- 🗃️ **Copy Data** → Copy **Product** table to ADLS
+
+---
+
+### 🔷 Step 3: Export and Deploy
+
+- 📤 **Export ARM Template**:  
+  Go to **Manage > ARM Template > Export**
+
+- 🗂️ **Upload to GitHub**:  
+  Place exported templates in:  
+  ```
+  /arm_templates/
+  ```
+
+---
+
 
