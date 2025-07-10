@@ -1,0 +1,998 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "type": "string",
+            "metadata": "Data Factory name",
+            "defaultValue": "rahulADFproject"
+        },
+        "AzureDataLakeStorage1_accountKey": {
+            "type": "secureString",
+            "metadata": "Secure string for 'accountKey' of 'AzureDataLakeStorage1'"
+        },
+        "AzureSqlDatabase1_password": {
+            "type": "secureString",
+            "metadata": "Secure string for 'password' of 'AzureSqlDatabase1'"
+        },
+        "AzureDataLakeStorage1_properties_typeProperties_url": {
+            "type": "string",
+            "defaultValue": "https://storageaccountrahul.dfs.core.windows.net/"
+        },
+        "AzureSqlDatabase1_properties_typeProperties_server": {
+            "type": "string",
+            "defaultValue": "student-sqlserver.database.windows.net"
+        },
+        "AzureSqlDatabase1_properties_typeProperties_database": {
+            "type": "string",
+            "defaultValue": "CustomerProductDB"
+        },
+        "AzureSqlDatabase1_properties_typeProperties_userName": {
+            "type": "string",
+            "defaultValue": "rahulserver"
+        },
+        "RestService1_properties_typeProperties_url": {
+            "type": "string",
+            "defaultValue": "https://restcountries.com/v3.1/"
+        },
+        "Trigger_CountryData_TwiceDaily_properties_FetchCountryData_parameters_countryList": {
+            "type": "array",
+            "defaultValue": [
+                "india",
+                "us",
+                "uk",
+                "china",
+                "russia"
+            ]
+        }
+    },
+    "variables": {
+        "factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat(parameters('factoryName'), '/AzureDataLakeStorage1')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureBlobFS",
+                "typeProperties": {
+                    "url": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]",
+                    "accountKey": {
+                        "type": "SecureString",
+                        "value": "[parameters('AzureDataLakeStorage1_accountKey')]"
+                    }
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/AzureSqlDatabase1')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureSqlDatabase",
+                "typeProperties": {
+                    "server": "[parameters('AzureSqlDatabase1_properties_typeProperties_server')]",
+                    "database": "[parameters('AzureSqlDatabase1_properties_typeProperties_database')]",
+                    "encrypt": "mandatory",
+                    "trustServerCertificate": false,
+                    "authenticationType": "SQL",
+                    "userName": "[parameters('AzureSqlDatabase1_properties_typeProperties_userName')]",
+                    "password": {
+                        "type": "SecureString",
+                        "value": "[parameters('AzureSqlDatabase1_password')]"
+                    }
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/RestService1')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "RestService",
+                "typeProperties": {
+                    "url": "[parameters('RestService1_properties_typeProperties_url')]",
+                    "enableServerCertificateValidation": false,
+                    "authenticationType": "Anonymous"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DS_REST_Countries')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "RestService1",
+                    "type": "LinkedServiceReference"
+                },
+                "parameters": {
+                    "relativeUrl": {
+                        "type": "string"
+                    }
+                },
+                "annotations": [],
+                "type": "RestResource",
+                "typeProperties": {
+                    "relativeUrl": {
+                        "value": "@dataset().relativeUrl",
+                        "type": "Expression"
+                    }
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/RestService1')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DS_ADLS_CountryOutput')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "AzureDataLakeStorage1",
+                    "type": "LinkedServiceReference"
+                },
+                "parameters": {
+                    "filename": {
+                        "type": "string"
+                    }
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": {
+                            "value": "@dataset().filename",
+                            "type": "Expression"
+                        },
+                        "folderPath": "rawdata",
+                        "fileSystem": "rawdata"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/AzureDataLakeStorage1')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DS_SQL_Customer')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "AzureSqlDatabase1",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "AzureSqlTable",
+                "schema": [],
+                "typeProperties": {
+                    "schema": "dbo",
+                    "table": "Customer"
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/customer_data')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "AzureDataLakeStorage1",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "customer_data.csv",
+                        "fileSystem": "customerdata"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": [
+                    {
+                        "name": "customer_id",
+                        "type": "String"
+                    },
+                    {
+                        "name": "first_name",
+                        "type": "String"
+                    },
+                    {
+                        "name": "last_name",
+                        "type": "String"
+                    },
+                    {
+                        "name": "email",
+                        "type": "String"
+                    },
+                    {
+                        "name": "phone",
+                        "type": "String"
+                    },
+                    {
+                        "name": "country",
+                        "type": "String"
+                    },
+                    {
+                        "name": "state",
+                        "type": "String"
+                    },
+                    {
+                        "name": "created_at",
+                        "type": "String"
+                    },
+                    {
+                        "name": "is_active",
+                        "type": "String"
+                    },
+                    {
+                        "name": "loyalty_points",
+                        "type": "String"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/AzureDataLakeStorage1')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/Product')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "AzureDataLakeStorage1",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "product_data.csv",
+                        "fileSystem": "productdata"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": [
+                    {
+                        "name": "product_id",
+                        "type": "String"
+                    },
+                    {
+                        "name": "product_name",
+                        "type": "String"
+                    },
+                    {
+                        "name": "category",
+                        "type": "String"
+                    },
+                    {
+                        "name": "price",
+                        "type": "String"
+                    },
+                    {
+                        "name": "available_stock",
+                        "type": "String"
+                    },
+                    {
+                        "name": "launch_date",
+                        "type": "String"
+                    },
+                    {
+                        "name": "is_available",
+                        "type": "String"
+                    },
+                    {
+                        "name": "rating",
+                        "type": "String"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/AzureDataLakeStorage1')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DelimitedText1')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "AzureDataLakeStorage1",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "customer_output.csv",
+                        "fileSystem": "customerdata"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": [
+                    {
+                        "name": "product_id",
+                        "type": "String"
+                    },
+                    {
+                        "name": "product_name",
+                        "type": "String"
+                    },
+                    {
+                        "name": "category",
+                        "type": "String"
+                    },
+                    {
+                        "name": "price",
+                        "type": "String"
+                    },
+                    {
+                        "name": "available_stock",
+                        "type": "String"
+                    },
+                    {
+                        "name": "launch_date",
+                        "type": "String"
+                    },
+                    {
+                        "name": "is_available",
+                        "type": "String"
+                    },
+                    {
+                        "name": "rating",
+                        "type": "String"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/AzureDataLakeStorage1')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/Productdata')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "AzureDataLakeStorage1",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "product_data.csv",
+                        "fileSystem": "productdata"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": [
+                    {
+                        "name": "product_id",
+                        "type": "String"
+                    },
+                    {
+                        "name": "product_name",
+                        "type": "String"
+                    },
+                    {
+                        "name": "category",
+                        "type": "String"
+                    },
+                    {
+                        "name": "price",
+                        "type": "String"
+                    },
+                    {
+                        "name": "available_stock",
+                        "type": "String"
+                    },
+                    {
+                        "name": "launch_date",
+                        "type": "String"
+                    },
+                    {
+                        "name": "is_available",
+                        "type": "String"
+                    },
+                    {
+                        "name": "rating",
+                        "type": "String"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/AzureDataLakeStorage1')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/FetchCountryData')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "ForEach1",
+                        "type": "ForEach",
+                        "dependsOn": [],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "items": {
+                                "value": "@pipeline().parameters.countryList",
+                                "type": "Expression"
+                            },
+                            "isSequential": true,
+                            "activities": [
+                                {
+                                    "name": "CallAPI",
+                                    "type": "WebActivity",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "timeout": "0.12:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "method": "GET",
+                                        "headers": {},
+                                        "linkedServices": [
+                                            {
+                                                "referenceName": "RestService1",
+                                                "type": "LinkedServiceReference"
+                                            }
+                                        ],
+                                        "url": {
+                                            "value": "https://restcountries.com/v3.1/name/@{item()}",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Copy data1",
+                                    "type": "Copy",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "CallAPI",
+                                            "dependencyConditions": [
+                                                "Succeeded"
+                                            ]
+                                        }
+                                    ],
+                                    "policy": {
+                                        "timeout": "0.12:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "source": {
+                                            "type": "RestSource",
+                                            "httpRequestTimeout": "00:01:40",
+                                            "requestInterval": "00.00:00:00.010",
+                                            "requestMethod": "GET",
+                                            "paginationRules": {
+                                                "supportRFC5988": "true"
+                                            }
+                                        },
+                                        "sink": {
+                                            "type": "JsonSink",
+                                            "storeSettings": {
+                                                "type": "AzureBlobFSWriteSettings",
+                                                "copyBehavior": "FlattenHierarchy"
+                                            },
+                                            "formatSettings": {
+                                                "type": "JsonWriteSettings"
+                                            }
+                                        },
+                                        "enableStaging": false
+                                    },
+                                    "inputs": [
+                                        {
+                                            "referenceName": "DS_REST_Countries",
+                                            "type": "DatasetReference",
+                                            "parameters": {
+                                                "relativeUrl": "name/@{item()}"
+                                            }
+                                        }
+                                    ],
+                                    "outputs": [
+                                        {
+                                            "referenceName": "DS_ADLS_CountryOutput",
+                                            "type": "DatasetReference",
+                                            "parameters": {
+                                                "filename": "@{item()}.json"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "parameters": {
+                    "countryList": {
+                        "type": "array",
+                        "defaultValue": [
+                            "india",
+                            "us",
+                            "uk",
+                            "china",
+                            "russia"
+                        ]
+                    }
+                },
+                "annotations": [],
+                "lastPublishTime": "2025-07-09T18:34:58Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/RestService1')]",
+                "[concat(variables('factoryId'), '/datasets/DS_REST_Countries')]",
+                "[concat(variables('factoryId'), '/datasets/DS_ADLS_CountryOutput')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/CopyCustomerData_Pipeline')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "CopyCustomerData",
+                        "type": "Copy",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.12:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "source": {
+                                "type": "DelimitedTextSource",
+                                "storeSettings": {
+                                    "type": "AzureBlobFSReadSettings",
+                                    "recursive": true,
+                                    "enablePartitionDiscovery": false
+                                },
+                                "formatSettings": {
+                                    "type": "DelimitedTextReadSettings"
+                                }
+                            },
+                            "sink": {
+                                "type": "AzureSqlSink",
+                                "writeBehavior": "insert",
+                                "sqlWriterUseTableLock": false,
+                                "tableOption": "autoCreate",
+                                "disableMetricsCollection": false
+                            },
+                            "enableStaging": false,
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "mappings": [
+                                    {
+                                        "source": {
+                                            "name": "customer_id",
+                                            "type": "Int32",
+                                            "physicalType": "int"
+                                        },
+                                        "sink": {
+                                            "name": "customer_id",
+                                            "type": "Int32",
+                                            "physicalType": "int"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "first_name",
+                                            "type": "String",
+                                            "physicalType": "nvarchar"
+                                        },
+                                        "sink": {
+                                            "name": "first_name",
+                                            "type": "String",
+                                            "physicalType": "nvarchar"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "last_name",
+                                            "type": "String",
+                                            "physicalType": "nvarchar"
+                                        },
+                                        "sink": {
+                                            "name": "last_name",
+                                            "type": "String",
+                                            "physicalType": "nvarchar"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "email",
+                                            "type": "String",
+                                            "physicalType": "nvarchar"
+                                        },
+                                        "sink": {
+                                            "name": "email",
+                                            "type": "String",
+                                            "physicalType": "nvarchar"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "phone",
+                                            "type": "String",
+                                            "physicalType": "varchar"
+                                        },
+                                        "sink": {
+                                            "name": "phone",
+                                            "type": "String",
+                                            "physicalType": "varchar"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "country",
+                                            "type": "String",
+                                            "physicalType": "nvarchar"
+                                        },
+                                        "sink": {
+                                            "name": "country",
+                                            "type": "String",
+                                            "physicalType": "nvarchar"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "state",
+                                            "type": "String",
+                                            "physicalType": "nvarchar"
+                                        },
+                                        "sink": {
+                                            "name": "state",
+                                            "type": "String",
+                                            "physicalType": "nvarchar"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "created_at",
+                                            "type": "DateTime",
+                                            "physicalType": "date"
+                                        },
+                                        "sink": {
+                                            "name": "created_at",
+                                            "type": "DateTime",
+                                            "physicalType": "date"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "is_active",
+                                            "type": "Boolean",
+                                            "physicalType": "bit"
+                                        },
+                                        "sink": {
+                                            "name": "is_active",
+                                            "type": "Boolean",
+                                            "physicalType": "bit"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "loyalty_points",
+                                            "type": "Int32",
+                                            "physicalType": "int"
+                                        },
+                                        "sink": {
+                                            "name": "loyalty_points",
+                                            "type": "Int32",
+                                            "physicalType": "int"
+                                        }
+                                    }
+                                ],
+                                "typeConversion": true,
+                                "typeConversionSettings": {
+                                    "allowDataTruncation": true,
+                                    "treatBooleanAsNumber": false
+                                }
+                            }
+                        },
+                        "inputs": [
+                            {
+                                "referenceName": "customer_data",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "referenceName": "DS_SQL_Customer",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ]
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "annotations": [],
+                "lastPublishTime": "2025-07-09T19:56:42Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/customer_data')]",
+                "[concat(variables('factoryId'), '/datasets/DS_SQL_Customer')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ChildPipeline_ProductCopy')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "CheckCustomerCountGreaterThan600",
+                        "type": "IfCondition",
+                        "dependsOn": [],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "expression": {
+                                "value": "@greater(int(pipeline().parameters.customerCount), 600)\n",
+                                "type": "Expression"
+                            },
+                            "ifTrueActivities": [
+                                {
+                                    "name": "Copy data1",
+                                    "type": "Copy",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "timeout": "0.12:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "source": {
+                                            "type": "DelimitedTextSource",
+                                            "storeSettings": {
+                                                "type": "AzureBlobFSReadSettings",
+                                                "recursive": true,
+                                                "enablePartitionDiscovery": false
+                                            },
+                                            "formatSettings": {
+                                                "type": "DelimitedTextReadSettings"
+                                            }
+                                        },
+                                        "sink": {
+                                            "type": "DelimitedTextSink",
+                                            "storeSettings": {
+                                                "type": "AzureBlobFSWriteSettings"
+                                            },
+                                            "formatSettings": {
+                                                "type": "DelimitedTextWriteSettings",
+                                                "quoteAllText": true,
+                                                "fileExtension": ".txt"
+                                            }
+                                        },
+                                        "enableStaging": false,
+                                        "translator": {
+                                            "type": "TabularTranslator",
+                                            "mappings": [
+                                                {
+                                                    "source": {
+                                                        "name": "product_id",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    },
+                                                    "sink": {
+                                                        "name": "product_id",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "product_name",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    },
+                                                    "sink": {
+                                                        "name": "product_name",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "category",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    },
+                                                    "sink": {
+                                                        "name": "category",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "price",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    },
+                                                    "sink": {
+                                                        "name": "price",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "available_stock",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    },
+                                                    "sink": {
+                                                        "name": "available_stock",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "launch_date",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    },
+                                                    "sink": {
+                                                        "name": "launch_date",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "is_available",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    },
+                                                    "sink": {
+                                                        "name": "is_available",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "rating",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    },
+                                                    "sink": {
+                                                        "name": "rating",
+                                                        "type": "String",
+                                                        "physicalType": "String"
+                                                    }
+                                                }
+                                            ],
+                                            "typeConversion": true,
+                                            "typeConversionSettings": {
+                                                "allowDataTruncation": true,
+                                                "treatBooleanAsNumber": false
+                                            }
+                                        }
+                                    },
+                                    "inputs": [
+                                        {
+                                            "referenceName": "Product",
+                                            "type": "DatasetReference",
+                                            "parameters": {}
+                                        }
+                                    ],
+                                    "outputs": [
+                                        {
+                                            "referenceName": "Productdata",
+                                            "type": "DatasetReference",
+                                            "parameters": {}
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "parameters": {
+                    "customerCount": {
+                        "type": "int"
+                    }
+                },
+                "annotations": [],
+                "lastPublishTime": "2025-07-10T05:19:18Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/Product')]",
+                "[concat(variables('factoryId'), '/datasets/Productdata')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/Trigger_CountryData_TwiceDaily')]",
+            "type": "Microsoft.DataFactory/factories/triggers",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "runtimeState": "Started",
+                "pipelines": [
+                    {
+                        "pipelineReference": {
+                            "referenceName": "FetchCountryData",
+                            "type": "PipelineReference"
+                        },
+                        "parameters": {
+                            "countryList": "[parameters('Trigger_CountryData_TwiceDaily_properties_FetchCountryData_parameters_countryList')]"
+                        }
+                    }
+                ],
+                "type": "ScheduleTrigger",
+                "typeProperties": {
+                    "recurrence": {
+                        "frequency": "Hour",
+                        "interval": 12,
+                        "startTime": "2025-07-10T00:00:00",
+                        "timeZone": "India Standard Time"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/pipelines/FetchCountryData')]"
+            ]
+        }
+    ]
+}

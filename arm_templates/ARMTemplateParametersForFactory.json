@@ -1,0 +1,39 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "value": "rahulADFproject"
+        },
+        "AzureDataLakeStorage1_accountKey": {
+            "value": ""
+        },
+        "AzureSqlDatabase1_password": {
+            "value": ""
+        },
+        "Trigger_CountryData_TwiceDaily_properties_FetchCountryData_parameters_countryList": {
+            "value": [
+                "india",
+                "us",
+                "uk",
+                "china",
+                "russia"
+            ]
+        },
+        "AzureDataLakeStorage1_properties_typeProperties_url": {
+            "value": "https://storageaccountrahul.dfs.core.windows.net/"
+        },
+        "AzureSqlDatabase1_properties_typeProperties_server": {
+            "value": "student-sqlserver.database.windows.net"
+        },
+        "AzureSqlDatabase1_properties_typeProperties_database": {
+            "value": "CustomerProductDB"
+        },
+        "AzureSqlDatabase1_properties_typeProperties_userName": {
+            "value": "rahulserver"
+        },
+        "RestService1_properties_typeProperties_url": {
+            "value": "https://restcountries.com/v3.1/"
+        }
+    }
+}
