@@ -226,11 +226,8 @@ This project contains a **dynamic conditional pipeline** architecture:
 
 ---
 
-## 🔗 Author & Links
+## 🔗 Author
 
-- 👨‍💻 Built by **Rahul Singh Chouhan**
-- 🔗 GitHub Repository: [github.com/your-username/ADF-Customer-Product-Pipeline](https://github.com/your-username/ADF-Customer-Product-Pipeline)
-
-
-
+👨‍💻 **Rahul Singh Chouhan**  
+🔗 GitHub Profile: [github.com/Rahulchouhan1](https://github.com/Rahulchouhan1)
 
