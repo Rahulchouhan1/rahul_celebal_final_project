@@ -230,4 +230,5 @@ This project contains a **dynamic conditional pipeline** architecture:
 
 👨‍💻 **Rahul Singh Chouhan**  
 🔗 GitHub Profile: [github.com/Rahulchouhan1](https://github.com/Rahulchouhan1)
+🔗 Linkedin Profile: [linkedin.com/Rahul Singh Chouhan](https://www.linkedin.com/in/rahul-singh-chouhan-5a7303270/)
 
