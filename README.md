@@ -1,38 +1,50 @@
-# 🚀 Azure Data Factory Conditional ETL Pipeline – Customer & Product Data
+# 🚀 Azure Data Factory: Conditional ETL Pipeline – Customer & Product Data
 
 ## 📌 Problem Statement
 
-Design a dynamic and conditional data pipeline in **Azure Data Factory** that:
+Design a **dynamic and conditional data pipeline** in **Azure Data Factory (ADF)** that:
 
-1. Copies **Customer data** from a database to **Azure Data Lake Storage (ADLS)** only if the number of customer records is **greater than 500**.
-2. If the condition is met, the pipeline should trigger a **child pipeline** that copies **Product data** from the database to ADLS, but **only if the customer count is greater than 600**.
-3. The customer count should be passed from the parent to the child pipeline using **pipeline parameters**.
+1. 💼 Copies **Customer Data** from a database to **Azure Data Lake Storage Gen2 (ADLS)** only if the number of customer records is **greater than 500**.
+2. 🔄 If the condition is met, the pipeline triggers a **child pipeline** that:
+   - Copies **Product Data** to ADLS
+   - But **only if customer count > 600**
+3. 🧮 Customer count must be passed from the parent pipeline to the child pipeline via **pipeline parameters**.
+
+---
+
+## 🧠 Logic & Design Architecture
+
+### 📍 Parent Pipeline Responsibilities
+
+- 🔎 **Lookup Activity**
+  - Fetch customer count from source database
+
+- 📥 **Set Variable**
+  - Store the fetched count
+
+- 🧮 **If Condition**
+  - Check if `customerCount > 500`
+  - If true:
+    - 🛠️ **Copy Data**: Move customer data to ADLS
+    - 🚀 **Execute Pipeline**: Trigger child pipeline, passing `customerCount` as a parameter
+
+### 📍 Child Pipeline Responsibilities
+
+- 📤 Accepts `customerCount` as a **parameter**
+- ✅ **If Condition** checks if `customerCount > 600`
+- 🛠️ **Copy Data** moves **Product Data** to ADLS if condition is satisfied
 
 ---
 
-## 🧠 Logic & Design Thinking
+## 🧱 Key ADF Components Used
 
-To build this efficiently and scalably, the following architectural design was applied:
-
-- **Parent Pipeline** handles:
-  - Fetching the customer count from a source table
-  - Evaluating if the count is greater than 500
-  - Copying Customer data conditionally
-  - Triggering a **child pipeline** and passing the count
-
-- **Child Pipeline**:
-  - Accepts `customerCount` as a parameter
-  - Copies Product data **only** if `customerCount > 600`
-
-- All data is saved to **Azure Data Lake Gen2** in folders for downstream use.
-
-### 🧱 Key Components Used:
-- **Lookup Activity** – to get customer count
-- **Set Variable** – to store count
-- **If Condition** – to apply logic (> 500 and > 600)
-- **Copy Data** – to perform actual ETL
-- **Execute Pipeline** – to call child pipeline
-- **Pipeline Parameters** – to pass values between pipelines
+| Component            | Purpose                                                  |
+|---------------------|-----------------------------------------------------------|
+| 🔎 Lookup Activity   | Retrieves customer count from the source table            |
+| 📥 Set Variable      | Stores retrieved count in a pipeline-level variable       |
+| 🧮 If Condition      | Applies logic to conditionally execute activities         |
+| 📂 Copy Data         | Transfers data to Azure Data Lake Storage Gen2            |
+| 🚀 Execute Pipeline  | Triggers child pipeline and passes parameters             |
+| 🎯 Pipeline Parameter| Enables inter-pipeline communication with dynamic values  |
 
 ---
- 
