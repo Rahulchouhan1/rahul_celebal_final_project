@@ -48,3 +48,10 @@ Design a **dynamic and conditional data pipeline** in **Azure Data Factory (ADF)
 | 🎯 Pipeline Parameter| Enables inter-pipeline communication with dynamic values  |
 
 ---
+
+## 🗂️ Data Storage
+
+All output data is stored in structured folders in **ADLS Gen2**, partitioned for downstream processing and analytics.
+
+---
+
